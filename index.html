@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор E2E AI-Агент · Дашборд</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg-deep:#07090F;
+  --bg-surface:#11141C;
+  --bg-card:#161A24;
+  --bg-glass:rgba(22,26,36,.65);
+  --border:rgba(33,160,56,.14);
+  --border-hi:rgba(33,160,56,.42);
+  --border-soft:rgba(255,255,255,.06);
+  --accent-1:#21A038;
+  --accent-2:#1AB67A;
+  --accent-3:#43E695;
+  --accent-glow:rgba(67,230,149,.18);
+  --warn:#FF7A00;
+  --warn-soft:rgba(255,122,0,.16);
+  --text-1:#F4F6FA;
+  --text-2:#9AA3B2;
+  --text-3:#5C6473;
+  --text-4:#3C424E;
+  --c-ss:#43E695;
+  --c-bg:#FFCB05;
+  --c-pep:#1AB67A;
+  --c-prko:#21A038;
+  --c-kod:#FF7A00;
+}
+html,body{background:var(--bg-deep); color:var(--text-1); font-family:'SB Sans Display','SB Sans Text','Inter','Inter Variable',-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; font-feature-settings:'ss01','cv11','tnum';}
+body{
+  background-image:
+    radial-gradient(800px 500px at 15% -10%, rgba(33,160,56,.10), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, rgba(67,230,149,.06), transparent 60%),
+    radial-gradient(700px 600px at 50% 110%, rgba(26,182,122,.05), transparent 65%);
+}
+.glass{
+  background:var(--bg-glass);
+  border:1px solid var(--border);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 24px 48px -24px rgba(0,0,0,.6);
+}
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0) 30%), var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  position:relative; overflow:hidden;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+.card:hover{ border-color:var(--border-hi); }
+.card-grad-line::before{
+  content:""; position:absolute; left:0; right:0; top:0; height:1px;
+  background:linear-gradient(90deg, transparent 0%, var(--accent-3) 50%, transparent 100%);
+  opacity:.35;
+}
+.card.flash{
+  border-color:var(--accent-3) !important;
+  box-shadow: 0 0 0 1px var(--accent-3) inset, 0 0 32px -6px var(--accent-glow);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.gradient-text{
+  background:linear-gradient(135deg, #43E695 0%, #1AB67A 45%, #21A038 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  -webkit-text-fill-color:transparent;
+}
+.subtle-divider{
+  height:1px; width:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+}
+
+/* ====== Chip toggles ====== */
+#chips{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:8px;
+}
+.chip{
+  --chip-color: var(--accent-3);
+  width:100%; min-height:44px;
+  display:flex; align-items:center; justify-content:flex-start; gap:8px;
+  padding:10px 12px; border-radius:12px;
+  text-align:left;
+  font-weight:600; font-size:13px; letter-spacing:.02em;
+  border:1px solid rgba(255,255,255,.08); color:var(--text-2);
+  background:rgba(255,255,255,.02);
+  cursor:pointer; user-select:none;
+  transition: all .22s cubic-bezier(.2,.7,.3,1);
+  position:relative;
+}
+.chip:hover{ color:var(--text-1); border-color:rgba(255,255,255,.16); }
+.chip .dot{
+  flex:0 0 auto;
+  width:8px; height:8px; border-radius:99px;
+  background:rgba(255,255,255,.18);
+  box-shadow: 0 0 0 0 transparent;
+  transition: all .22s ease;
+}
+.chip .chip-short{ flex:0 0 auto; }
+.chip .chip-extra{
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  opacity:.6; font-size:11px;
+}
+@media (max-width: 767px){
+  .chip .chip-extra{ display:none; }
+}
+.chip[aria-pressed="true"]{
+  color:#06180D;
+  background:linear-gradient(135deg, var(--accent-3), var(--accent-2));
+  border-color: transparent;
+  box-shadow: 0 8px 20px -8px var(--accent-glow), 0 0 0 1px rgba(67,230,149,.25);
+}
+.chip[aria-pressed="true"] .dot{
+  background:#0A2C18;
+  box-shadow: 0 0 0 3px rgba(10,44,24,.25);
+}
+
+/* ====== Sliders ====== */
+.slider-row{ position:relative; padding:10px 12px; border-radius:12px; transition: background .2s ease, box-shadow .2s ease; }
+.slider-row:hover{ background:rgba(255,255,255,.025); }
+.slider-row.focus{ background:rgba(33,160,56,.06); box-shadow: inset 0 0 0 1px var(--border-hi); }
+.slider-row .label{ display:flex; justify-content:space-between; align-items:baseline; font-size:11.5px; color:var(--text-2); letter-spacing:.02em; }
+.slider-row .label .name{ font-weight:600; color:var(--text-1); }
+.slider-row .label .val{ font-variant-numeric: tabular-nums; font-weight:600; color:var(--accent-3); font-size:12.5px; }
+input[type=range].sb{
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:6px; margin-top:8px;
+  background:transparent; cursor:pointer; outline:none;
+}
+input[type=range].sb::-webkit-slider-runnable-track{
+  height:6px; border-radius:99px;
+  background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent-3) var(--pct,30%), rgba(255,255,255,.06) var(--pct,30%), rgba(255,255,255,.06) 100%);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.4);
+}
+input[type=range].sb::-moz-range-track{
+  height:6px; border-radius:99px;
+  background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent-3) var(--pct,30%), rgba(255,255,255,.06) var(--pct,30%), rgba(255,255,255,.06) 100%);
+}
+input[type=range].sb::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:18px; height:18px; border-radius:99px;
+  background: radial-gradient(circle at 30% 30%, #B5FFD1, #43E695 55%, #1AB67A);
+  border:0; margin-top:-6px;
+  box-shadow: 0 0 0 4px rgba(67,230,149,.18), 0 2px 6px rgba(0,0,0,.5);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+input[type=range].sb:active::-webkit-slider-thumb,
+input[type=range].sb:hover::-webkit-slider-thumb{
+  box-shadow: 0 0 0 7px rgba(67,230,149,.18), 0 2px 8px rgba(0,0,0,.55);
+  transform: scale(1.08);
+}
+input[type=range].sb::-moz-range-thumb{
+  width:18px; height:18px; border-radius:99px;
+  background: radial-gradient(circle at 30% 30%, #B5FFD1, #43E695 55%, #1AB67A); border:0;
+  box-shadow: 0 0 0 4px rgba(67,230,149,.18), 0 2px 6px rgba(0,0,0,.5);
+}
+input[type=range].sb:disabled{ opacity:.35; cursor:not-allowed; }
+input[type=range].sb:disabled::-webkit-slider-runnable-track{
+  background: linear-gradient(90deg, #555 0%, #777 var(--pct,30%), rgba(255,255,255,.04) var(--pct,30%), rgba(255,255,255,.04) 100%);
+}
+
+/* ====== Number flow ====== */
+.kpi-num{
+  font-feature-settings: 'tnum';
+  letter-spacing:-.01em;
+}
+.kpi-card{ min-height:130px; }
+.scen-card{ min-height:240px; }
+
+/* ====== Accordion ====== */
+.accordion-toggle{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; border-radius:12px; transition: background .2s ease; }
+.accordion-toggle:hover{ background:rgba(255,255,255,.03); }
+.accordion-toggle .chev{ transition: transform .25s ease; color:var(--text-2); }
+.accordion[aria-expanded="true"] .chev{ transform: rotate(180deg); color:var(--accent-3); }
+.accordion-body{ max-height:0; overflow:hidden; transition: max-height .35s cubic-bezier(.2,.7,.3,1); }
+.accordion[aria-expanded="true"] .accordion-body{ max-height:600px; }
+
+/* ====== Number input (advanced params) ====== */
+.num-input{
+  width:100%; background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08); border-radius:10px;
+  padding:9px 12px; color:var(--text-1); font-size:13.5px; font-weight:500;
+  font-variant-numeric:tabular-nums; outline:none;
+  transition: border-color .15s ease, background .15s ease;
+}
+.num-input:focus{ border-color:var(--border-hi); background:rgba(33,160,56,.06); }
+
+/* ====== Tooltips ====== */
+.tip{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:18px; height:18px; padding:0;
+  border:0; background:transparent; color:inherit;
+  cursor:help;
+}
+.tip:focus-visible{ outline:1px solid var(--accent-3); outline-offset:3px; border-radius:99px; }
+.fixed-tooltip{
+  position:fixed;
+  width:min(260px, calc(100vw - 32px)); padding:10px 12px;
+  background:#0E1218; color:var(--text-1); font-size:11.5px; line-height:1.45;
+  border:1px solid var(--border-hi); border-radius:10px;
+  box-shadow: 0 12px 30px -8px rgba(0,0,0,.6);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translateY(4px); transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+  z-index:9999;
+}
+.fixed-tooltip.show{
+  opacity:1; visibility:visible; transform:translateY(0);
+}
+
+/* ====== Scrollbar (Webkit) ====== */
+*::-webkit-scrollbar{ width:10px; height:10px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.07); border-radius:99px; }
+*::-webkit-scrollbar-thumb:hover{ background:rgba(67,230,149,.25); }
+
+/* ====== Small badges ====== */
+.badge{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:99px; font-size:11px; font-weight:600; letter-spacing:.04em; }
+.badge-offline{ background:rgba(67,230,149,.08); color:var(--accent-3); border:1px solid rgba(67,230,149,.18); }
+.badge-warn{ background:var(--warn-soft); color:var(--warn); border:1px solid rgba(255,122,0,.35); }
+
+/* Pulsing dot */
+.pulse-dot{ width:6px; height:6px; border-radius:99px; background:var(--accent-3); box-shadow:0 0 0 0 var(--accent-3); animation:pulse 2.2s infinite; }
+@keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(67,230,149,.6);} 70%{box-shadow:0 0 0 10px rgba(67,230,149,0);} 100%{box-shadow:0 0 0 0 rgba(67,230,149,0);} }
+
+.kbd{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; padding:2px 6px; border-radius:6px; background:rgba(255,255,255,.06); color:var(--text-2); }
+
+/* ====== Mobile tabs + touch layout ====== */
+.mobile-tabs,
+.mobile-live-summary{ display:none; }
+
+@media (max-width: 767px){
+  body{
+    background-image:
+      radial-gradient(520px 420px at 20% -8%, rgba(33,160,56,.12), transparent 62%),
+      radial-gradient(560px 460px at 105% 12%, rgba(67,230,149,.07), transparent 64%);
+  }
+  main{ padding:16px 14px calc(18px + env(safe-area-inset-bottom)); }
+  header{ gap:14px; margin-bottom:14px; }
+  header h1{ font-size:28px !important; line-height:1.08 !important; letter-spacing:0 !important; }
+  header p{ font-size:12.5px !important; line-height:1.5; }
+  header .badge{ min-height:36px; }
+  #resetBtn{ min-height:40px; padding:9px 12px; }
+
+  .mobile-tabs{
+    position:sticky;
+    top:max(8px, env(safe-area-inset-top));
+    z-index:50;
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:4px;
+    margin:0 0 12px;
+    padding:5px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:rgba(12,15,22,.92);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    box-shadow:0 16px 38px -26px rgba(0,0,0,.8);
+  }
+  .mobile-tab{
+    min-height:42px;
+    border-radius:12px;
+    color:var(--text-2);
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.02em;
+    transition:background .18s ease, color .18s ease, box-shadow .18s ease;
+  }
+  .mobile-tab[aria-selected="true"]{
+    color:#06180D;
+    background:linear-gradient(135deg, var(--accent-3), var(--accent-2));
+    box-shadow:0 10px 24px -12px var(--accent-glow);
+  }
+  .mobile-live-summary{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:8px;
+    margin:0 0 14px;
+  }
+  .mobile-live-item{
+    min-width:0;
+    padding:10px 9px;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:14px;
+    background:rgba(255,255,255,.035);
+  }
+  .mobile-live-label{
+    color:var(--text-3);
+    font-size:9.5px;
+    font-weight:800;
+    line-height:1.2;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .mobile-live-value{
+    margin-top:5px;
+    color:var(--text-1);
+    font-size:15px;
+    font-weight:900;
+    line-height:1.05;
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+
+  [data-mobile-panel]{ display:none !important; }
+  [data-mobile-panel].mobile-panel-active{ display:block !important; }
+  #resultsColumn.mobile-content-empty{ display:none !important; }
+
+  .card{ border-radius:16px; }
+  .card:hover{ border-color:var(--border); }
+  #chips{
+    grid-template-columns:repeat(5, minmax(0, 1fr));
+    gap:7px;
+  }
+  .chip{
+    min-height:48px;
+    justify-content:center;
+    padding:10px 6px;
+    font-size:12.5px;
+  }
+  .chip .dot{ display:none; }
+  .chip .chip-extra{ display:none; }
+  .slider-row{
+    min-height:72px;
+    padding:12px 12px 14px;
+  }
+  .slider-row .label{ font-size:12px; }
+  .slider-row .label .val{ font-size:13.5px; }
+  input[type=range].sb{ height:30px; margin-top:6px; }
+  input[type=range].sb::-webkit-slider-runnable-track{ height:8px; }
+  input[type=range].sb::-moz-range-track{ height:8px; }
+  input[type=range].sb::-webkit-slider-thumb{
+    width:24px; height:24px; margin-top:-8px;
+    box-shadow:0 0 0 6px rgba(67,230,149,.16), 0 2px 8px rgba(0,0,0,.55);
+  }
+  input[type=range].sb::-moz-range-thumb{
+    width:24px; height:24px;
+    box-shadow:0 0 0 6px rgba(67,230,149,.16), 0 2px 8px rgba(0,0,0,.55);
+  }
+  .accordion-toggle{ min-height:62px; padding:14px; }
+  #legalParams > div{
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:8px !important;
+  }
+  .legal-input-wrap{ width:100% !important; }
+  .num-input{ min-height:44px; font-size:14px; }
+
+  #kpiGrid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px;
+  }
+  .kpi-card{ min-height:118px; padding:14px !important; }
+  .kpi-card .kpi-num{ font-size:25px !important; line-height:1.08; letter-spacing:0; }
+  .tip{ width:34px; height:34px; flex:0 0 auto; }
+  .scen-card{ min-height:218px; padding:16px !important; }
+  .scen-card .kpi-num{ font-size:25px !important; line-height:1.12; }
+  .chart-shell{ padding:16px !important; }
+  .chart-box{ height:236px !important; }
+  .chart-box-doughnut{ height:282px !important; }
+  .fixed-tooltip{
+    width:min(300px, calc(100vw - 24px));
+    font-size:12px;
+    padding:11px 12px;
+  }
+  footer{ margin-top:24px !important; }
+}
+</style>
+</head>
+<body class="min-h-screen">
+
+<main class="max-w-[1600px] mx-auto px-6 lg:px-8 py-6 lg:py-8">
+
+  <!-- ====== Header ====== -->
+  <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-7">
+    <div>
+      <div class="flex items-center gap-2 text-[12px] font-medium text-[color:var(--text-2)] tracking-wider uppercase mb-2">
+        <span class="pulse-dot"></span>
+        Калькулятор экономики · Live
+      </div>
+      <h1 class="text-[34px] lg:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em]">
+        E2E AI-Агент <span class="gradient-text">для правовой экспертизы</span>
+      </h1>
+      <p class="text-[14px] text-[color:var(--text-2)] mt-2 max-w-[640px]">
+        6&nbsp;112 сделок · 838 уникальных комбинаций экспертиз · 5 видов экспертизы. Двигайте слайдеры — модель пересчитывается мгновенно.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="badge badge-offline">● ОФЛАЙН · file://</span>
+      <button id="resetBtn" class="px-3.5 py-2 text-[12.5px] font-semibold rounded-xl border border-white/8 hover:border-white/20 text-[color:var(--text-2)] hover:text-white transition-all">
+        ↻ Сбросить параметры
+      </button>
+    </div>
+  </header>
+
+  <nav id="mobileTabs" class="mobile-tabs" role="tablist" aria-label="Мобильные разделы">
+    <button type="button" class="mobile-tab" data-mobile-tab="summary" role="tab" aria-selected="true">Итоги</button>
+    <button type="button" class="mobile-tab" data-mobile-tab="settings" role="tab" aria-selected="false">Настройка</button>
+    <button type="button" class="mobile-tab" data-mobile-tab="charts" role="tab" aria-selected="false">Графики</button>
+  </nav>
+
+  <section id="mobileLiveSummary" class="mobile-live-summary" aria-live="polite">
+    <div class="mobile-live-item">
+      <div class="mobile-live-label">Доля ошибок</div>
+      <div class="mobile-live-value" data-mobile-live="errShare">—</div>
+    </div>
+    <div class="mobile-live-item">
+      <div class="mobile-live-label">Базовый риск</div>
+      <div class="mobile-live-value" data-mobile-live="baseClaim">—</div>
+    </div>
+    <div class="mobile-live-item">
+      <div class="mobile-live-label">Рост</div>
+      <div class="mobile-live-value" data-mobile-live="growth">—</div>
+    </div>
+  </section>
+
+  <div id="dashboardGrid" class="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-6">
+
+    <!-- ====== LEFT: controls ====== -->
+    <aside class="space-y-5" data-mobile-panel="settings">
+
+      <!-- Экспертизы / чипы -->
+      <section class="card p-5 card-grad-line">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-[12.5px] font-bold tracking-[.12em] uppercase text-[color:var(--text-2)]">Виды экспертизы</h2>
+          <span class="text-[11px] text-[color:var(--text-3)]"><span id="activeExpsCount">5</span>/5 включено</span>
+        </div>
+        <div id="chips"></div>
+        <p class="text-[11.5px] text-[color:var(--text-3)] mt-3 leading-relaxed">
+          Сделки, где есть выключенная экспертиза, <span class="text-[color:var(--text-2)]">исключаются из пула целиком</span>.
+        </p>
+      </section>
+
+      <!-- Слайдеры качества AI -->
+      <section class="card p-5">
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-[12.5px] font-bold tracking-[.12em] uppercase text-[color:var(--text-2)]">Качество AI · 10 параметров</h2>
+        </div>
+        <p class="text-[11.5px] text-[color:var(--text-3)] mb-4 leading-relaxed">
+          Меняйте вероятности ошибки и долю ошибок, которые переходят в правовой риск. KPI и сценарии пересчитываются мгновенно.
+        </p>
+
+        <div class="space-y-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1 px-1">
+              <div class="w-1 h-3 rounded-full bg-[color:var(--accent-3)]"></div>
+              <span class="text-[11px] uppercase tracking-[.1em] font-bold text-[color:var(--text-2)]">Вероятность ошибки по экспертизе</span>
+            </div>
+            <div id="slidersErr" class="grid grid-cols-1 gap-1"></div>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 mb-1 px-1">
+              <div class="w-1 h-3 rounded-full bg-[color:var(--c-kod)]"></div>
+              <span class="text-[11px] uppercase tracking-[.1em] font-bold text-[color:var(--text-2)]">Доля ошибок, влекущих риск</span>
+            </div>
+            <div id="slidersRisk" class="grid grid-cols-1 gap-1"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Аккордеон: legal params -->
+      <section class="card overflow-hidden">
+        <div id="legalAcc" class="accordion" aria-expanded="false">
+          <div class="accordion-toggle" id="legalToggle">
+            <div>
+              <div class="text-[12.5px] font-bold tracking-[.12em] uppercase text-[color:var(--text-2)]">Расширенные параметры</div>
+              <div class="text-[11.5px] text-[color:var(--text-3)] mt-0.5">Параметры судебного риска</div>
+            </div>
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="accordion-body">
+            <div class="px-5 pb-5 pt-1 space-y-3" id="legalParams"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer hint -->
+      <div class="text-[11px] text-[color:var(--text-4)] leading-relaxed px-1">
+        Источник: <span class="kbd">Калькулятор E2E AI-Агент — стилизованный.xlsx</span><br>
+        Все формулы и значения портированы 1-в-1 из Excel.
+      </div>
+    </aside>
+
+    <!-- ====== RIGHT: canvas ====== -->
+    <section id="resultsColumn" class="space-y-6 min-w-0">
+
+      <!-- KPI 6 cards -->
+      <div class="space-y-6" data-mobile-panel="summary">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="kpiGrid"></div>
+
+        <!-- 3 scenarios -->
+        <div>
+          <div class="flex items-end justify-between mb-3">
+            <div>
+              <h2 class="text-[20px] font-bold tracking-[-0.01em]">Сценарии судебного риска</h2>
+              <p class="text-[12.5px] text-[color:var(--text-3)] mt-1">Сумма требований при разных коэффициентах перехода ошибки AI в спор</p>
+            </div>
+            <span class="text-[11px] text-[color:var(--text-3)] uppercase tracking-[.1em]">3 уровня</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="scenGrid"></div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" data-mobile-panel="charts">
+        <div class="card p-5 chart-shell">
+          <div class="flex items-end justify-between mb-3">
+            <h3 class="text-[14px] font-bold tracking-[.02em]">Сумма требований по сценариям</h3>
+            <span class="text-[11px] text-[color:var(--text-3)]">₽</span>
+          </div>
+          <div class="h-[260px] chart-box"><canvas id="chartBar"></canvas></div>
+        </div>
+        <div class="card p-5 chart-shell">
+          <div class="flex items-end justify-between mb-3">
+            <h3 class="text-[14px] font-bold tracking-[.02em]">Вклад экспертиз в ошибки</h3>
+            <span class="text-[11px] text-[color:var(--text-3)]">ожид. сделок</span>
+          </div>
+          <div class="h-[260px] chart-box chart-box-doughnut"><canvas id="chartDoughnut"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card p-5" data-mobile-panel="summary">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+          <div class="max-w-[520px]">
+            <div class="text-[11px] uppercase tracking-[.12em] font-bold text-[color:var(--accent-3)] mb-2">Как работать с дашбордом</div>
+            <h3 class="text-[18px] font-bold tracking-[-0.01em]">Быстрая оценка E2E-риска AI-экспертизы</h3>
+            <p class="text-[12.5px] text-[color:var(--text-2)] mt-2 leading-relaxed">
+              Модель показывает, сколько сделок попадёт в пул автоматизации, сколько ошибок AI ожидается и во что они могут превратиться в судебных сценариях.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:min-w-[520px]">
+            <div class="rounded-xl border border-white/8 bg-white/[.025] p-3">
+              <div class="text-[11px] uppercase tracking-[.1em] text-[color:var(--text-3)] font-bold">Данные</div>
+              <div class="text-[13px] text-[color:var(--text-1)] mt-1 leading-snug">6&nbsp;112 сделок, 838 комбинаций, 5 видов экспертизы.</div>
+            </div>
+            <div class="rounded-xl border border-white/8 bg-white/[.025] p-3">
+              <div class="text-[11px] uppercase tracking-[.1em] text-[color:var(--text-3)] font-bold">Настройка</div>
+              <div class="text-[13px] text-[color:var(--text-1)] mt-1 leading-snug">Включайте экспертизы и двигайте 10 параметров качества AI.</div>
+            </div>
+            <div class="rounded-xl border border-white/8 bg-white/[.025] p-3">
+              <div class="text-[11px] uppercase tracking-[.1em] text-[color:var(--text-3)] font-bold">Результат</div>
+              <div class="text-[13px] text-[color:var(--text-1)] mt-1 leading-snug">Читайте KPI, вклад экспертиз и три сценария суммы требований.</div>
+            </div>
+          </div>
+        </div>
+        <div class="subtle-divider my-4"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-[color:var(--text-2)] leading-relaxed">
+          <div><span class="font-bold text-[color:var(--text-1)]">Toggle-кнопки</span> исключают из пула сделки, где есть выключенная экспертиза.</div>
+          <div><span class="font-bold text-[color:var(--text-1)]">Слайдеры</span> меняют вероятность ошибки и долю ошибок, влекущих правовой риск.</div>
+          <div><span class="font-bold text-[color:var(--text-1)]">Источник истины</span> — Excel-калькулятор; формулы перенесены в HTML 1-в-1.</div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <footer class="text-center text-[11px] text-[color:var(--text-4)] mt-10 pb-4">
+    Дашборд работает офлайн через <span class="kbd">file://</span>. Шрифты и графики подгружаются с CDN при первом открытии и кэшируются.
+  </footer>
+
+</main>
+
+<!-- ============================================================ -->
+<!-- ===============     DATA + MODEL + RENDER     ============== -->
+<!-- ============================================================ -->
+<script>
+"use strict";
+
+/* ===== 838 комбинаций (compact: [deals, СС, БГ, ПЭП, ПРКО, КОД]) ===== */
+const COMBOS = [[960,1,0,0,0,0],[489,1,0,0,1,0],[353,0,0,0,0,1],[262,1,0,0,2,0],[191,0,0,0,1,0],[171,0,0,1,0,0],[169,1,0,1,0,0],[150,2,0,0,0,0],[143,1,0,1,1,0],[116,0,0,0,0,2],[101,2,0,0,1,0],[94,1,0,0,3,0],[89,0,1,0,0,0],[78,0,0,0,2,0],[72,2,0,0,2,0],[65,1,0,1,2,0],[45,0,0,1,0,1],[45,1,0,0,4,0],[44,0,2,0,0,0],[40,1,1,0,0,0],[39,0,0,0,0,3],[37,1,0,0,1,1],[37,1,0,1,3,0],[36,0,0,2,0,0],[36,2,0,1,0,0],[35,1,0,0,0,1],[34,0,0,0,3,0],[32,1,0,1,2,1],[31,1,0,1,1,1],[28,2,0,0,3,0],[28,3,0,0,0,0],[27,1,0,2,1,0],[26,2,0,1,1,0],[26,3,0,0,1,0],[23,0,0,1,0,2],[23,1,0,2,2,0],[22,1,0,0,5,0],[22,1,0,2,1,1],[22,1,0,2,2,1],[21,2,0,0,4,0],[21,2,0,1,2,0],[20,1,0,1,1,2],[20,3,0,0,2,0],[19,0,0,1,1,0],[19,0,0,2,0,1],[18,1,0,1,0,1],[16,1,0,0,2,1],[16,1,0,1,3,1],[16,1,0,1,4,0],[16,1,0,2,0,0],[15,1,0,0,1,2],[15,1,0,0,2,2],[15,1,0,0,3,1],[15,1,0,2,1,2],[14,0,0,0,0,4],[14,0,3,0,0,0],[14,2,0,1,1,1],[13,0,0,0,1,1],[13,0,0,3,0,0],[13,1,0,0,0,2],[13,1,0,0,6,0],[13,1,0,1,2,2],[12,0,0,2,0,2],[12,2,0,0,1,1],[12,2,0,1,3,0],[12,2,0,2,1,0],[11,0,0,0,4,0],[11,2,0,1,2,1],[10,0,0,0,0,5],[10,1,0,1,4,1],[10,1,2,0,0,0],[10,2,0,0,0,1],[10,2,0,0,5,0],[10,3,0,0,3,0],[10,3,0,1,1,0],[9,0,0,0,2,1],[9,0,1,0,0,1],[9,1,0,2,3,1],[9,2,0,0,1,2],[9,2,0,1,3,1],[9,2,0,2,2,1],[8,0,0,0,1,2],[8,1,0,0,0,3],[8,1,0,0,3,2],[8,1,0,2,2,2],[8,1,0,2,3,0],[8,1,0,3,1,2],[8,1,0,3,2,1],[8,1,0,3,2,2],[8,2,0,1,4,0],[8,3,0,1,0,0],[7,0,0,0,5,0],[7,0,0,1,2,0],[7,0,0,1,3,0],[7,1,0,0,1,3],[7,1,0,1,3,2],[7,1,0,2,1,4],[7,1,0,2,2,3],[7,1,1,0,1,0],[7,2,0,0,6,0],[7,2,0,2,3,1],[7,3,0,1,2,0],[7,4,0,0,1,0],[7,4,0,0,3,0],[6,0,0,1,0,3],[6,0,0,2,0,3],[6,1,0,0,2,3],[6,1,0,1,0,2],[6,1,0,3,1,0],[6,2,0,0,2,1],[6,2,0,0,2,2],[6,2,0,1,3,2],[6,2,0,1,5,0],[6,2,0,2,0,0],[6,3,0,0,4,0],[6,4,0,0,2,0],[5,0,0,0,0,9],[5,0,0,2,0,4],[5,1,0,0,1,4],[5,1,0,0,4,1],[5,1,0,1,1,3],[5,1,0,1,1,4],[5,1,1,1,1,0],[5,2,0,0,2,3],[5,2,0,1,2,2],[5,2,0,1,4,1],[5,3,0,0,1,2],[5,3,0,1,3,0],[5,4,0,0,0,0],[4,0,0,0,2,2],[4,0,0,2,1,0],[4,0,0,3,0,1],[4,0,1,1,0,0],[4,0,4,0,0,0],[4,1,0,0,0,4],[4,1,0,0,4,2],[4,1,0,0,7,0],[4,1,0,0,8,0],[4,1,0,1,2,3],[4,1,0,1,4,2],[4,1,0,1,5,0],[4,1,0,1,6,0],[4,1,0,2,1,5],[4,1,0,2,3,2],[4,1,0,2,4,2],[4,1,0,3,2,0],[4,1,1,0,2,0],[4,1,1,1,0,0],[4,1,3,0,0,0],[4,2,0,0,1,3],[4,2,0,0,3,1],[4,2,0,1,1,3],[4,2,0,1,7,0],[4,2,0,2,1,2],[4,2,0,2,2,2],[4,2,0,2,4,0],[4,2,1,0,0,0],[4,2,1,0,1,0],[4,3,0,0,1,1],[4,3,0,0,2,1],[4,3,0,0,3,1],[4,3,0,1,2,1],[4,3,0,2,0,0],[4,3,0,2,1,0],[4,4,0,0,1,1],[3,0,0,0,2,3],[3,0,0,0,6,0],[3,0,0,0,7,0],[3,0,0,2,2,0],[3,0,0,3,1,0],[3,0,0,4,0,0],[3,0,0,4,0,1],[3,0,1,0,1,0],[3,0,2,0,0,1],[3,1,0,0,3,3],[3,1,0,0,3,4],[3,1,0,0,5,3],[3,1,0,1,0,3],[3,1,0,1,4,3],[3,1,0,1,5,1],[3,1,0,2,1,3],[3,1,0,2,4,1],[3,1,0,3,0,0],[3,1,0,3,4,1],[3,1,0,3,4,2],[3,1,0,4,2,1],[3,1,0,4,2,3],[3,1,0,5,2,1],[3,1,1,0,0,1],[3,2,0,0,0,2],[3,2,0,0,2,5],[3,2,0,0,3,2],[3,2,0,1,1,2],[3,2,0,1,6,0],[3,2,0,2,2,0],[3,2,0,2,3,2],[3,3,0,0,0,1],[3,3,0,0,2,2],[3,3,0,2,3,1],[3,3,0,3,2,0],[2,0,0,0,0,6],[2,0,0,0,1,3],[2,0,0,0,1,4],[2,0,0,1,1,3],[2,0,0,1,2,1],[2,0,0,1,2,2],[2,0,0,1,3,1],[2,0,0,1,3,3],[2,0,0,1,5,0],[2,0,0,2,0,6],[2,0,0,2,1,1],[2,0,0,2,3,1],[2,0,0,3,0,4],[2,0,0,3,3,0],[2,0,0,5,0,2],[2,0,1,1,0,2],[2,0,3,0,0,1],[2,0,6,0,0,0],[2,1,0,0,1,5],[2,1,0,0,5,5],[2,1,0,0,6,2],[2,1,0,0,11,0],[2,1,0,1,1,6],[2,1,0,1,2,4],[2,1,0,1,3,4],[2,1,0,1,4,4],[2,1,0,1,6,1],[2,1,0,1,7,0],[2,1,0,2,0,1],[2,1,0,2,0,2],[2,1,0,2,0,3],[2,1,0,2,2,5],[2,1,0,2,3,3],[2,1,0,2,4,0],[2,1,0,2,7,0],[2,1,0,2,7,1],[2,1,0,3,1,5],[2,1,0,3,2,3],[2,1,0,3,2,4],[2,1,0,3,3,0],[2,1,0,3,3,1],[2,1,0,3,3,2],[2,1,0,3,6,0],[2,1,0,4,0,2],[2,1,0,4,1,1],[2,1,0,4,1,5],[2,1,0,4,1,6],[2,1,0,4,2,2],[2,1,0,4,3,1],[2,1,0,5,1,2],[2,1,0,6,0,0],[2,1,1,0,4,0],[2,1,1,1,2,0],[2,1,1,2,0,2],[2,1,1,2,1,1],[2,1,1,2,2,0],[2,1,2,0,1,0],[2,1,2,1,0,0],[2,1,2,1,2,0],[2,1,2,2,2,1],[2,1,3,1,0,0],[2,1,3,1,1,0],[2,2,0,0,3,3],[2,2,0,0,4,2],[2,2,0,0,5,1],[2,2,0,0,5,3],[2,2,0,0,6,2],[2,2,0,0,7,0],[2,2,0,1,1,4],[2,2,0,1,2,3],[2,2,0,1,2,4],[2,2,0,1,5,4],[2,2,0,1,7,1],[2,2,0,2,1,1],[2,2,0,2,1,4],[2,2,0,2,2,3],[2,2,0,2,3,0],[2,2,0,3,0,0],[2,2,0,3,1,0],[2,2,0,3,2,0],[2,2,0,3,3,0],[2,2,0,3,3,1],[2,2,0,3,4,4],[2,2,0,4,2,0],[2,2,1,1,0,0],[2,2,1,1,3,1],[2,2,1,2,1,0],[2,2,1,2,2,1],[2,2,3,0,0,0],[2,3,0,0,2,3],[2,3,0,0,2,4],[2,3,0,0,3,2],[2,3,0,0,4,1],[2,3,0,0,5,0],[2,3,0,0,5,1],[2,3,0,1,1,2],[2,3,0,1,1,4],[2,3,0,1,4,0],[2,3,0,1,5,0],[2,3,0,2,1,2],[2,3,0,2,2,0],[2,3,0,2,4,3],[2,3,0,3,1,0],[2,3,0,3,4,2],[2,4,0,0,2,1],[2,4,0,0,4,0],[2,4,0,0,4,2],[2,4,0,1,1,0],[2,4,0,1,4,0],[2,4,0,2,2,0],[2,5,0,0,1,1],[2,5,0,0,2,0],[2,6,1,0,1,3],[1,0,0,0,0,7],[1,0,0,0,0,10],[1,0,0,0,0,17],[1,0,0,0,1,5],[1,0,0,0,2,5],[1,0,0,0,3,2],[1,0,0,0,4,2],[1,0,0,0,4,5],[1,0,0,0,5,1],[1,0,0,0,5,2],[1,0,0,0,6,1],[1,0,0,0,6,4],[1,0,0,0,8,0],[1,0,0,1,0,5],[1,0,0,1,1,1],[1,0,0,1,1,2],[1,0,0,1,1,4],[1,0,0,1,1,5],[1,0,0,1,2,3],[1,0,0,1,2,4],[1,0,0,1,4,2],[1,0,0,1,4,3],[1,0,0,1,5,1],[1,0,0,1,6,0],[1,0,0,2,0,5],[1,0,0,2,0,20],[1,0,0,2,1,2],[1,0,0,2,1,3],[1,0,0,2,1,6],[1,0,0,2,2,2],[1,0,0,2,2,3],[1,0,0,2,3,2],[1,0,0,2,3,3],[1,0,0,2,3,5],[1,0,0,2,4,4],[1,0,0,2,6,2],[1,0,0,3,0,2],[1,0,0,3,0,5],[1,0,0,3,0,7],[1,0,0,3,1,2],[1,0,0,3,1,4],[1,0,0,3,2,0],[1,0,0,3,4,1],[1,0,0,4,0,4],[1,0,0,4,0,5],[1,0,0,4,1,1],[1,0,0,4,1,3],[1,0,0,4,2,3],[1,0,0,4,2,4],[1,0,0,4,3,2],[1,0,0,4,4,2],[1,0,0,5,0,0],[1,0,0,5,0,3],[1,0,0,5,0,4],[1,0,0,5,3,7],[1,0,0,6,0,1],[1,0,0,6,1,2],[1,0,0,6,3,3],[1,0,0,6,4,0],[1,0,0,7,0,2],[1,0,0,7,0,6],[1,0,0,14,4,0],[1,0,0,15,0,0],[1,0,0,16,0,0],[1,0,0,18,0,0],[1,0,0,34,0,0],[1,0,1,0,0,2],[1,0,1,0,0,3],[1,0,1,0,0,6],[1,0,1,0,2,0],[1,0,1,1,1,0],[1,0,1,1,1,1],[1,0,1,1,2,0],[1,0,1,1,3,3],[1,0,2,0,0,5],[1,0,2,0,2,0],[1,0,2,5,0,1],[1,0,3,1,2,0],[1,0,4,0,0,1],[1,0,4,0,1,0],[1,0,4,1,0,1],[1,0,4,3,0,0],[1,0,5,0,0,0],[1,0,5,0,0,3],[1,0,7,0,0,0],[1,0,8,1,3,4],[1,0,44,0,0,27],[1,1,0,0,0,5],[1,1,0,0,0,6],[1,1,0,0,0,7],[1,1,0,0,0,8],[1,1,0,0,0,9],[1,1,0,0,1,6],[1,1,0,0,1,15],[1,1,0,0,1,16],[1,1,0,0,2,4],[1,1,0,0,2,5],[1,1,0,0,2,6],[1,1,0,0,2,7],[1,1,0,0,3,5],[1,1,0,0,4,3],[1,1,0,0,4,5],[1,1,0,0,5,1],[1,1,0,0,5,2],[1,1,0,0,5,4],[1,1,0,0,5,10],[1,1,0,1,1,7],[1,1,0,1,1,8],[1,1,0,1,1,12],[1,1,0,1,2,5],[1,1,0,1,2,9],[1,1,0,1,3,3],[1,1,0,1,5,2],[1,1,0,1,5,3],[1,1,0,1,5,4],[1,1,0,1,5,6],[1,1,0,1,5,15],[1,1,0,1,7,12],[1,1,0,2,0,4],[1,1,0,2,1,7],[1,1,0,2,2,4],[1,1,0,2,2,7],[1,1,0,2,3,5],[1,1,0,2,3,6],[1,1,0,2,4,3],[1,1,0,2,4,4],[1,1,0,2,5,0],[1,1,0,2,5,1],[1,1,0,2,5,2],[1,1,0,2,6,2],[1,1,0,2,6,3],[1,1,0,2,7,6],[1,1,0,2,8,1],[1,1,0,3,0,1],[1,1,0,3,0,3],[1,1,0,3,0,4],[1,1,0,3,0,5],[1,1,0,3,0,8],[1,1,0,3,0,10],[1,1,0,3,1,1],[1,1,0,3,1,4],[1,1,0,3,2,6],[1,1,0,3,3,3],[1,1,0,3,3,5],[1,1,0,3,4,0],[1,1,0,3,5,0],[1,1,0,3,5,4],[1,1,0,3,6,1],[1,1,0,4,0,0],[1,1,0,4,1,3],[1,1,0,4,1,4],[1,1,0,4,2,5],[1,1,0,4,5,0],[1,1,0,4,5,2],[1,1,0,4,7,4],[1,1,0,4,8,1],[1,1,0,5,0,0],[1,1,0,5,0,3],[1,1,0,5,1,4],[1,1,0,5,2,2],[1,1,0,5,4,1],[1,1,0,5,6,2],[1,1,0,6,1,2],[1,1,0,6,2,0],[1,1,0,6,2,1],[1,1,0,6,2,2],[1,1,0,6,2,3],[1,1,0,6,3,15],[1,1,0,7,0,3],[1,1,0,7,1,0],[1,1,0,7,1,2],[1,1,0,7,1,3],[1,1,0,8,3,2],[1,1,0,9,1,5],[1,1,0,9,2,0],[1,1,0,10,1,2],[1,1,0,10,2,1],[1,1,0,15,1,0],[1,1,0,16,2,0],[1,1,1,0,0,2],[1,1,1,0,0,3],[1,1,1,0,1,3],[1,1,1,0,2,4],[1,1,1,0,3,0],[1,1,1,0,3,3],[1,1,1,0,5,0],[1,1,1,1,1,1],[1,1,1,1,1,4],[1,1,1,1,2,2],[1,1,1,1,3,0],[1,1,1,1,3,1],[1,1,1,1,3,2],[1,1,1,1,4,0],[1,1,1,1,4,3],[1,1,1,2,1,0],[1,1,1,2,2,1],[1,1,1,2,3,3],[1,1,1,2,4,3],[1,1,1,3,1,0],[1,1,1,3,1,2],[1,1,1,3,2,1],[1,1,1,3,2,2],[1,1,1,3,2,6],[1,1,1,3,3,1],[1,1,1,3,3,3],[1,1,1,3,4,0],[1,1,1,4,0,3],[1,1,1,4,2,1],[1,1,1,4,2,2],[1,1,1,4,4,0],[1,1,1,5,4,4],[1,1,1,7,2,3],[1,1,2,0,0,1],[1,1,2,0,0,3],[1,1,2,0,1,1],[1,1,2,0,2,0],[1,1,2,0,2,4],[1,1,2,0,2,8],[1,1,2,0,3,0],[1,1,2,0,4,0],[1,1,2,0,4,3],[1,1,2,1,2,2],[1,1,2,1,3,3],[1,1,2,2,0,0],[1,1,2,2,1,0],[1,1,2,2,1,2],[1,1,2,2,1,3],[1,1,2,2,5,0],[1,1,2,3,2,3],[1,1,3,0,1,1],[1,1,3,0,2,3],[1,1,3,0,6,2],[1,1,3,2,1,2],[1,1,3,2,2,2],[1,1,3,2,3,2],[1,1,3,3,1,1],[1,1,3,5,2,3],[1,1,4,0,0,0],[1,1,4,0,2,0],[1,1,4,0,2,3],[1,1,4,6,3,0],[1,1,11,0,1,0],[1,2,0,0,0,5],[1,2,0,0,1,4],[1,2,0,0,1,5],[1,2,0,0,2,4],[1,2,0,0,2,8],[1,2,0,0,2,11],[1,2,0,0,3,6],[1,2,0,0,4,5],[1,2,0,0,4,14],[1,2,0,0,5,4],[1,2,0,0,7,1],[1,2,0,0,8,0],[1,2,0,0,10,0],[1,2,0,1,0,1],[1,2,0,1,0,2],[1,2,0,1,1,24],[1,2,0,1,1,26],[1,2,0,1,3,3],[1,2,0,1,4,2],[1,2,0,1,6,1],[1,2,0,1,6,2],[1,2,0,1,6,4],[1,2,0,1,8,0],[1,2,0,2,1,3],[1,2,0,2,3,3],[1,2,0,2,4,1],[1,2,0,2,4,2],[1,2,0,2,4,3],[1,2,0,2,5,0],[1,2,0,2,5,2],[1,2,0,2,7,0],[1,2,0,2,7,1],[1,2,0,2,8,2],[1,2,0,2,9,2],[1,2,0,3,0,5],[1,2,0,3,1,2],[1,2,0,3,1,4],[1,2,0,3,1,5],[1,2,0,3,2,1],[1,2,0,3,2,2],[1,2,0,3,2,3],[1,2,0,3,3,2],[1,2,0,3,3,3],[1,2,0,3,3,9],[1,2,0,3,3,10],[1,2,0,3,4,1],[1,2,0,3,4,2],[1,2,0,3,4,5],[1,2,0,3,5,1],[1,2,0,3,5,3],[1,2,0,3,9,3],[1,2,0,4,0,1],[1,2,0,4,1,1],[1,2,0,4,1,4],[1,2,0,4,2,1],[1,2,0,4,2,2],[1,2,0,4,2,4],[1,2,0,4,3,1],[1,2,0,4,3,2],[1,2,0,5,1,0],[1,2,0,5,1,1],[1,2,0,5,1,4],[1,2,0,5,2,2],[1,2,0,5,4,1],[1,2,0,6,0,1],[1,2,0,6,1,0],[1,2,0,6,2,9],[1,2,0,7,2,2],[1,2,0,10,6,1],[1,2,1,0,0,1],[1,2,1,0,0,3],[1,2,1,0,1,6],[1,2,1,0,2,0],[1,2,1,0,2,3],[1,2,1,0,3,0],[1,2,1,0,7,0],[1,2,1,1,0,2],[1,2,1,1,1,0],[1,2,1,1,2,0],[1,2,1,1,2,1],[1,2,1,1,3,0],[1,2,1,1,5,1],[1,2,1,1,8,2],[1,2,1,1,10,2],[1,2,1,2,1,1],[1,2,1,2,2,3],[1,2,1,3,2,1],[1,2,1,3,3,2],[1,2,1,3,4,1],[1,2,1,3,6,1],[1,2,1,7,2,3],[1,2,2,0,0,0],[1,2,2,0,1,1],[1,2,2,0,2,1],[1,2,2,1,2,1],[1,2,2,1,4,2],[1,2,2,1,5,0],[1,2,2,2,3,1],[1,2,2,2,4,2],[1,2,2,3,1,0],[1,2,2,3,1,1],[1,2,3,0,5,9],[1,2,3,1,0,2],[1,2,3,1,2,3],[1,2,3,2,1,0],[1,2,3,2,6,2],[1,2,3,4,0,4],[1,2,4,0,1,1],[1,2,10,0,0,0],[1,2,11,2,5,6],[1,3,0,0,0,2],[1,3,0,0,0,3],[1,3,0,0,0,4],[1,3,0,0,1,4],[1,3,0,0,3,4],[1,3,0,0,7,0],[1,3,0,0,8,0],[1,3,0,0,8,3],[1,3,0,0,9,0],[1,3,0,0,9,2],[1,3,0,1,1,1],[1,3,0,1,1,3],[1,3,0,1,1,5],[1,3,0,1,2,2],[1,3,0,1,2,4],[1,3,0,1,3,1],[1,3,0,1,3,2],[1,3,0,1,3,3],[1,3,0,1,4,1],[1,3,0,1,4,3],[1,3,0,1,5,1],[1,3,0,1,5,2],[1,3,0,1,5,3],[1,3,0,1,6,1],[1,3,0,1,6,4],[1,3,0,1,7,1],[1,3,0,1,9,0],[1,3,0,1,10,2],[1,3,0,1,11,0],[1,3,0,2,0,1],[1,3,0,2,0,2],[1,3,0,2,1,1],[1,3,0,2,1,5],[1,3,0,2,2,1],[1,3,0,2,2,10],[1,3,0,2,3,2],[1,3,0,2,3,5],[1,3,0,2,5,0],[1,3,0,2,7,0],[1,3,0,3,0,3],[1,3,0,3,1,1],[1,3,0,3,2,3],[1,3,0,3,3,0],[1,3,0,3,3,2],[1,3,0,3,4,0],[1,3,0,3,4,1],[1,3,0,3,5,0],[1,3,0,3,5,1],[1,3,0,4,3,3],[1,3,0,4,4,1],[1,3,0,4,5,4],[1,3,0,6,2,3],[1,3,0,7,2,0],[1,3,0,7,3,1],[1,3,1,0,0,0],[1,3,1,0,1,0],[1,3,1,0,1,4],[1,3,1,0,3,0],[1,3,1,0,4,0],[1,3,1,0,4,3],[1,3,1,1,0,0],[1,3,1,1,1,0],[1,3,1,2,0,2],[1,3,1,2,1,2],[1,3,1,3,1,0],[1,3,1,3,2,3],[1,3,2,0,1,0],[1,3,2,1,0,0],[1,3,2,1,0,3],[1,3,2,1,1,0],[1,3,2,1,3,2],[1,3,2,1,4,5],[1,3,2,2,5,2],[1,3,2,3,1,2],[1,3,2,3,2,2],[1,3,3,0,1,0],[1,3,3,0,2,5],[1,3,3,1,1,4],[1,3,3,2,3,2],[1,3,4,3,4,1],[1,4,0,0,0,1],[1,4,0,0,1,2],[1,4,0,0,3,3],[1,4,0,0,3,4],[1,4,0,0,4,1],[1,4,0,0,4,5],[1,4,0,0,5,0],[1,4,0,0,5,2],[1,4,0,0,7,0],[1,4,0,0,8,0],[1,4,0,0,10,0],[1,4,0,1,0,0],[1,4,0,1,1,2],[1,4,0,1,1,3],[1,4,0,1,1,4],[1,4,0,1,2,0],[1,4,0,1,2,1],[1,4,0,1,2,2],[1,4,0,1,2,5],[1,4,0,1,3,0],[1,4,0,1,4,4],[1,4,0,1,4,7],[1,4,0,1,12,1],[1,4,0,2,2,1],[1,4,0,2,2,2],[1,4,0,2,2,6],[1,4,0,2,3,0],[1,4,0,2,4,1],[1,4,0,2,5,0],[1,4,0,2,5,1],[1,4,0,2,6,0],[1,4,0,3,4,3],[1,4,0,4,3,2],[1,4,0,4,3,6],[1,4,0,4,3,8],[1,4,0,4,5,1],[1,4,0,5,1,0],[1,4,1,0,1,4],[1,4,1,0,2,2],[1,4,1,1,1,0],[1,4,1,1,1,3],[1,4,1,1,4,0],[1,4,1,2,4,3],[1,4,1,5,2,2],[1,4,2,0,0,0],[1,4,3,2,3,4],[1,5,0,0,0,0],[1,5,0,0,1,0],[1,5,0,0,1,2],[1,5,0,0,2,1],[1,5,0,0,3,2],[1,5,0,0,6,0],[1,5,0,0,14,0],[1,5,0,1,0,0],[1,5,0,1,1,1],[1,5,0,1,2,0],[1,5,0,1,2,3],[1,5,0,2,1,0],[1,5,0,2,3,3],[1,5,0,2,8,2],[1,5,0,3,0,1],[1,5,0,3,1,4],[1,5,0,6,9,8],[1,5,0,8,4,4],[1,5,1,1,1,2],[1,6,0,0,0,2],[1,6,0,0,1,2],[1,6,0,0,1,5],[1,6,0,0,2,0],[1,6,0,0,3,0],[1,6,0,0,5,0],[1,6,0,0,9,1],[1,6,0,1,0,0],[1,6,0,1,4,3],[1,6,0,2,7,0],[1,6,0,5,3,3],[1,6,0,9,2,6],[1,7,0,0,0,0],[1,7,0,0,1,2],[1,7,0,0,1,3],[1,7,0,0,3,6],[1,7,0,0,8,0],[1,7,0,1,1,0],[1,7,0,3,2,2],[1,7,3,0,1,4],[1,7,8,0,2,1],[1,8,1,0,4,0],[1,8,2,0,2,4],[1,9,0,1,2,0],[1,9,1,0,2,3],[1,10,0,5,5,4],[1,11,0,1,8,6],[1,14,7,0,0,6]];
+
+/* ===== Конфиг экспертиз ===== */
+const EXPS = [
+  { id:'ss',   short:'СС',   full:'Структура сделки',                          color:'var(--c-ss)',   hex:'#43E695', idx:1 },
+  { id:'bg',   short:'БГ',   full:'Банковская гарантия',                       color:'var(--c-bg)',   hex:'#FFCB05', idx:2 },
+  { id:'pep',  short:'ПЭП',  full:'Правоспособность',                          color:'var(--c-pep)',  hex:'#1AB67A', idx:3 },
+  { id:'prko', short:'ПРКО', full:'Проект решения коллегиального органа',      color:'var(--c-prko)', hex:'#21A038', idx:4 },
+  { id:'kod',  short:'КОД',  full:'Кредитно-обеспечительная документация',     color:'var(--c-kod)',  hex:'#FF7A00', idx:5 },
+];
+
+/* ===== Дефолтное состояние (из Excel) ===== */
+const DEFAULT_STATE = {
+  toggles: { ss:true, bg:true, pep:true, prko:true, kod:true },              // B5:B9
+  pError:  { ss:.30,  bg:.20,  pep:.20,  prko:.15,  kod:.05 },               // L7:P7
+  pRisk:   { ss:.40,  bg:.03,  pep:.30,  prko:.50,  kod:.60 },               // L8:P8
+  legal: {
+    humanErr:    0.02,        // B21
+    dispShare:   0.003,       // B22
+    dispByErr:   0.5,         // B23
+    histSuccess: 0.17,        // B24
+    otherSuccess:0.1,         // B25
+    avgClaim:    2_300_000,   // B26
+  }
+};
+const state = structuredClone(DEFAULT_STATE);
+
+/* ===== Core: recompute ===== */
+function recompute(s){
+  const t = s.toggles;
+  const pIn = {
+    ss:   t.ss   ? s.pError.ss   * s.pRisk.ss   : 0,
+    bg:   t.bg   ? s.pError.bg   * s.pRisk.bg   : 0,
+    pep:  t.pep  ? s.pError.pep  * s.pRisk.pep  : 0,
+    prko: t.prko ? s.pError.prko * s.pRisk.prko : 0,
+    kod:  t.kod  ? s.pError.kod  * s.pRisk.kod  : 0,
+  };
+  // (1-p)^n precomputed per expertise — но n непостоянное, поэтому посчитаем налету через Math.pow
+  let dealsInPool=0, expsInPool=0, errDeals=0, errExps=0;
+  const contrib = { ss:0, bg:0, pep:0, prko:0, kod:0 };
+  const omitSs   = !t.ss,   omitBg = !t.bg, omitPep = !t.pep, omitPrko = !t.prko, omitKod = !t.kod;
+  for (let i=0; i<COMBOS.length; i++){
+    const c = COMBOS[i];
+    const d=c[0], s_=c[1], b_=c[2], p_=c[3], r_=c[4], k_=c[5];
+    // filter
+    if (omitSs && s_>0) continue;
+    if (omitBg && b_>0) continue;
+    if (omitPep && p_>0) continue;
+    if (omitPrko && r_>0) continue;
+    if (omitKod && k_>0) continue;
+    const sumN = s_+b_+p_+r_+k_;
+    if (sumN===0) continue;
+    let prod = 1;
+    if (s_>0)   prod *= Math.pow(1-pIn.ss,   s_);
+    if (b_>0)   prod *= Math.pow(1-pIn.bg,   b_);
+    if (p_>0)   prod *= Math.pow(1-pIn.pep,  p_);
+    if (r_>0)   prod *= Math.pow(1-pIn.prko, r_);
+    if (k_>0)   prod *= Math.pow(1-pIn.kod,  k_);
+    const pCombo = 1-prod;
+    dealsInPool += d;
+    expsInPool  += d * sumN;
+    errDeals    += d * pCombo;
+    errExps     += d * (s_*pIn.ss + b_*pIn.bg + p_*pIn.pep + r_*pIn.prko + k_*pIn.kod);
+    if (s_>0   && t.ss)   contrib.ss   += d * (1 - Math.pow(1-pIn.ss, s_));
+    if (b_>0   && t.bg)   contrib.bg   += d * (1 - Math.pow(1-pIn.bg, b_));
+    if (p_>0   && t.pep)  contrib.pep  += d * (1 - Math.pow(1-pIn.pep, p_));
+    if (r_>0   && t.prko) contrib.prko += d * (1 - Math.pow(1-pIn.prko, r_));
+    if (k_>0   && t.kod)  contrib.kod  += d * (1 - Math.pow(1-pIn.kod, k_));
+  }
+  const errShare = dealsInPool>0 ? errDeals/dealsInPool : 0;
+  const L = s.legal;
+  const growth   = L.humanErr>0 ? errShare / L.humanErr : 0;
+
+  const dispByErrShare = L.dispShare * L.dispByErr;
+  const dispOtherShare = L.dispShare * (1-L.dispByErr);
+  const transferBase   = L.humanErr>0 ? dispByErrShare/L.humanErr : 0;
+  const successBase    = L.dispByErr>0 ? (L.histSuccess - (1-L.dispByErr)*L.otherSuccess)/L.dispByErr : 0;
+
+  const scenarios = [
+    { name:'Базовый AI', tag:'base',    mult:1,   fixed: successBase },
+    { name:'Умеренный',  tag:'mid',     mult:1.5, fixed: 0.30 },
+    { name:'Стресс',     tag:'stress',  mult:2.5, fixed: 0.35 },
+  ].map(sc => {
+    const coeff = transferBase * sc.mult;
+    const eAi   = errShare * coeff;
+    const gTotal = eAi + dispOtherShare;
+    const disputes = gTotal * dealsInPool;
+    const weighted = gTotal>0 ? (eAi*sc.fixed + dispOtherShare*L.otherSuccess)/gTotal : 0;
+    const wonClaims = disputes * weighted;
+    const claimsSum = wonClaims * L.avgClaim;
+    return { ...sc, coeff, eAi, gTotal, disputes, weighted, wonClaims, claimsSum };
+  });
+
+  return { pIn, dealsInPool, expsInPool, errDeals, errExps, errShare, growth,
+           contrib, scenarios, transferBase, successBase, dispByErrShare, dispOtherShare };
+}
+
+/* ===== Formatters ===== */
+const NB = ' ';
+const fmtInt   = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
+const fmtDec1  = new Intl.NumberFormat('ru-RU',{minimumFractionDigits:1, maximumFractionDigits:1});
+const fmtDec2  = new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtPct1  = new Intl.NumberFormat('ru-RU',{style:'percent', minimumFractionDigits:1, maximumFractionDigits:1});
+const fmtPct2  = new Intl.NumberFormat('ru-RU',{style:'percent', minimumFractionDigits:2, maximumFractionDigits:2});
+function fmtMoney(v){
+  if (v >= 1e9) return fmtDec2.format(v/1e9)+NB+'млрд'+NB+'₽';
+  if (v >= 1e6) return fmtDec1.format(v/1e6)+NB+'млн'+NB+'₽';
+  if (v >= 1e3) return fmtInt.format(Math.round(v/1e3))+NB+'тыс'+NB+'₽';
+  return fmtInt.format(Math.round(v))+NB+'₽';
+}
+function escAttr(s){
+  return String(s).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+/* ===== Number tween ===== */
+function tweenNumber(el, to, fmt, dur=380){
+  const fromAttr = el.dataset.cur;
+  const from = fromAttr === undefined ? to : parseFloat(fromAttr);
+  if (!isFinite(from) || from === to){
+    el.dataset.cur = to;
+    el.textContent = fmt(to);
+    return;
+  }
+  const start = performance.now();
+  const step = (now) => {
+    let t = Math.min(1, (now-start)/dur);
+    t = 1 - Math.pow(1-t, 3); // ease-out-cubic
+    const cur = from + (to-from)*t;
+    el.textContent = fmt(cur);
+    if (t < 1) requestAnimationFrame(step);
+    else { el.dataset.cur = to; el.textContent = fmt(to); }
+  };
+  requestAnimationFrame(step);
+}
+
+/* ===== Flash ===== */
+function flash(el){
+  if (!el) return;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  clearTimeout(el._flashT);
+  el._flashT = setTimeout(()=>el.classList.remove('flash'), 650);
+}
+
+/* =============================================================== */
+/* ====================       UI BUILD       ===================== */
+/* =============================================================== */
+
+function buildChips(){
+  const root = document.getElementById('chips');
+  root.innerHTML = '';
+  EXPS.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.setAttribute('aria-pressed', state.toggles[e.id]);
+    btn.dataset.exp = e.id;
+    btn.innerHTML = `<span class="dot"></span><span class="chip-short">${e.short}</span><span class="chip-extra">· ${e.full.split(' ').slice(0,2).join(' ')}…</span>`;
+    btn.title = e.full;
+    btn.addEventListener('click', () => {
+      state.toggles[e.id] = !state.toggles[e.id];
+      btn.setAttribute('aria-pressed', state.toggles[e.id]);
+      // если оставили 0 включённых — откатим
+      if (Object.values(state.toggles).every(v => !v)){
+        state.toggles[e.id] = true;
+        btn.setAttribute('aria-pressed', true);
+        return;
+      }
+      // disabled state на слайдерах
+      document.querySelectorAll(`input[data-exp="${e.id}"]`).forEach(r => r.disabled = !state.toggles[e.id]);
+      apply();
+    });
+    root.appendChild(btn);
+  });
+}
+
+function buildSliders(){
+  const errRoot  = document.getElementById('slidersErr');
+  const riskRoot = document.getElementById('slidersRisk');
+  errRoot.innerHTML = ''; riskRoot.innerHTML = '';
+  EXPS.forEach(e => {
+    errRoot.appendChild(makeSliderRow(e, 'pError'));
+    riskRoot.appendChild(makeSliderRow(e, 'pRisk'));
+  });
+}
+function makeSliderRow(e, group){
+  const wrap = document.createElement('div');
+  wrap.className = 'slider-row';
+  wrap.dataset.group = group; wrap.dataset.exp = e.id;
+  const val = state[group][e.id];
+  wrap.innerHTML = `
+    <div class="label">
+      <span class="name"><span style="color:${e.hex}">●</span>${NB}${e.short}</span>
+      <span class="val">${Math.round(val*100)}%</span>
+    </div>
+    <input type="range" min="0" max="100" step="1" value="${Math.round(val*100)}"
+           class="sb" data-group="${group}" data-exp="${e.id}"
+           style="--pct:${Math.round(val*100)}%" />
+  `;
+  const inp = wrap.querySelector('input');
+  inp.addEventListener('input', ev => {
+    const v = parseInt(ev.target.value,10)/100;
+    state[group][e.id] = v;
+    ev.target.style.setProperty('--pct', ev.target.value+'%');
+    wrap.querySelector('.val').textContent = ev.target.value+'%';
+    apply();
+  });
+  const setFocus = () => {
+    document.querySelectorAll('.slider-row').forEach(r => r.classList.remove('focus'));
+    wrap.classList.add('focus');
+  };
+  inp.addEventListener('focus', setFocus);
+  wrap.addEventListener('click', setFocus);
+  return wrap;
+}
+
+function buildKpiCards(){
+  const root = document.getElementById('kpiGrid');
+  const cards = [
+    { id:'k-deals',   label:'Сделок в пуле E2E',           hint:'B13 · сумма сделок по всем активным комбинациям' },
+    { id:'k-exps',    label:'Экспертиз в пуле',             hint:'B14 · сумма всех экспертиз в активных сделках' },
+    { id:'k-errDeals',label:'Сделок с ошибкой (ожид.)',     hint:'B15 · математическое ожидание сделок с хотя бы одной ошибкой' },
+    { id:'k-errShare',label:'Доля сделок с ошибкой',        hint:'B16 · ожидание ошибочных сделок ÷ пул', accent:true },
+    { id:'k-errExps', label:'Экспертиз с ошибкой',          hint:'B17 · сумма ожиданий по экспертизам' },
+    { id:'k-growth',  label:'Коэф. роста vs человек',       hint:'B18 · доля ошибок AI ÷ ошибка человека (B21). >5 = красная зона.', accent:true, warn:true },
+  ];
+  root.innerHTML = cards.map(c => `
+    <div class="card kpi-card p-5 card-grad-line" id="${c.id}">
+      <div class="flex items-start justify-between gap-2">
+        <div class="text-[12px] text-[color:var(--text-2)] leading-snug font-semibold tracking-[.02em] uppercase">${c.label}</div>
+        <button type="button" class="tip text-[color:var(--text-3)] hover:text-white"
+                data-tooltip="${escAttr(c.hint)}" aria-label="Пояснение: ${escAttr(c.label)}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v5M12 7.5v.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="mt-4">
+        <div class="kpi-num text-[34px] font-extrabold ${c.accent?'gradient-text':''}" data-kpi="${c.id}">—</div>
+        <div class="text-[12px] text-[color:var(--text-3)] mt-1" data-kpi-sub="${c.id}">&nbsp;</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setupFixedTooltips(){
+  let tooltip = document.getElementById('fixedTooltip');
+  if (!tooltip){
+    tooltip = document.createElement('div');
+    tooltip.id = 'fixedTooltip';
+    tooltip.className = 'fixed-tooltip';
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tooltip);
+  }
+
+  let activeTrigger = null;
+  let hideTimer = null;
+  const pad = 16;
+  const touchMq = window.matchMedia('(hover: none), (pointer: coarse)');
+
+  const positionTooltip = (trigger) => {
+    const rect = trigger.getBoundingClientRect();
+    const ttRect = tooltip.getBoundingClientRect();
+    let left = rect.left + rect.width / 2 - ttRect.width / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - ttRect.width - pad));
+
+    let top = rect.top - ttRect.height - 10;
+    if (top < pad) top = rect.bottom + 10;
+    top = Math.max(pad, Math.min(top, window.innerHeight - ttRect.height - pad));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const showTooltip = (trigger, autoHide=false) => {
+    const text = trigger.dataset.tooltip;
+    if (!text) return;
+    clearTimeout(hideTimer);
+    activeTrigger = trigger;
+    tooltip.textContent = text;
+    tooltip.style.visibility = 'hidden';
+    tooltip.classList.add('show');
+    tooltip.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+      if (activeTrigger !== trigger) return;
+      positionTooltip(trigger);
+      tooltip.style.visibility = '';
+    });
+    if (autoHide) hideTimer = setTimeout(hideTooltip, 3200);
+  };
+
+  const hideTooltip = () => {
+    clearTimeout(hideTimer);
+    activeTrigger = null;
+    tooltip.classList.remove('show');
+    tooltip.setAttribute('aria-hidden', 'true');
+    tooltip.style.visibility = '';
+  };
+
+  document.querySelectorAll('[data-tooltip]').forEach(trigger => {
+    trigger.addEventListener('mouseenter', () => showTooltip(trigger));
+    trigger.addEventListener('focus', () => showTooltip(trigger));
+    trigger.addEventListener('mouseleave', hideTooltip);
+    trigger.addEventListener('blur', hideTooltip);
+    trigger.addEventListener('click', e => {
+      if (!touchMq.matches) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeTrigger === trigger) hideTooltip();
+      else showTooltip(trigger, true);
+    });
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!activeTrigger || e.target.closest('[data-tooltip]')) return;
+    hideTooltip();
+  });
+  window.addEventListener('scroll', hideTooltip, true);
+  window.addEventListener('resize', hideTooltip);
+}
+
+function buildScenCards(){
+  const root = document.getElementById('scenGrid');
+  const tones = [
+    { tag:'base',   label:'Базовый AI', sub:'×1.0 ·  историческа успешность 17%',  grad:'linear-gradient(135deg, rgba(67,230,149,.18), rgba(26,182,122,.08))', accent:'#43E695' },
+    { tag:'mid',    label:'Умеренный',  sub:'×1.5 ·  успешность 30%',         grad:'linear-gradient(135deg, rgba(255,203,5,.16), rgba(255,122,0,.04))', accent:'#FFCB05' },
+    { tag:'stress', label:'Стресс',     sub:'×2.5 ·  успешность 35%',         grad:'linear-gradient(135deg, rgba(255,122,0,.22), rgba(255,80,80,.08))', accent:'#FF7A00' },
+  ];
+  root.innerHTML = tones.map((t,i)=>`
+    <div class="card scen-card p-5 card-grad-line" id="scen-${t.tag}" style="background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0) 30%), var(--bg-card), ${t.grad}">
+      <div class="absolute inset-0 pointer-events-none opacity-20" style="background:${t.grad}"></div>
+      <div class="relative">
+        <div class="flex items-start justify-between mb-1">
+          <div>
+            <div class="text-[11px] uppercase tracking-[.12em] font-bold" style="color:${t.accent}">Сценарий ${i+1}</div>
+            <div class="text-[18px] font-bold mt-0.5">${t.label}</div>
+            <div class="text-[11px] text-[color:var(--text-3)] mt-0.5">${t.sub}</div>
+          </div>
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(255,255,255,.04); border:1px solid ${t.accent}66">
+            <span class="text-[15px] font-bold" style="color:${t.accent}">${i+1}</span>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <div class="text-[11px] text-[color:var(--text-3)] uppercase tracking-[.08em]">Сумма требований</div>
+          <div class="kpi-num text-[28px] font-extrabold mt-1" data-scen-money="${t.tag}" style="color:${t.accent}">—</div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3 text-[12px]">
+          <div>
+            <div class="text-[color:var(--text-3)]">Оспариваемых сделок</div>
+            <div class="font-bold text-[15px] mt-0.5" data-scen-disp="${t.tag}">—</div>
+          </div>
+          <div>
+            <div class="text-[color:var(--text-3)]">Удовл. иски</div>
+            <div class="font-bold text-[15px] mt-0.5" data-scen-won="${t.tag}">—</div>
+          </div>
+          <div>
+            <div class="text-[color:var(--text-3)]">Решения не в пользу банка</div>
+            <div class="font-bold text-[15px] mt-0.5" data-scen-success="${t.tag}">—</div>
+          </div>
+          <div>
+            <div class="text-[color:var(--text-3)]">Коэф. перехода</div>
+            <div class="font-bold text-[15px] mt-0.5" data-scen-coeff="${t.tag}">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildLegalParams(){
+  const root = document.getElementById('legalParams');
+  const fields = [
+    { id:'humanErr',     label:'P(ошибка человека → риск)',         fmt:'pct', step:0.001, max:1, hint:'B21 · базовый уровень ошибок сотрудника (точка сравнения для коэф. роста)' },
+    { id:'dispShare',    label:'Историческая доля оспариваний',     fmt:'pct', step:0.0001, max:1, hint:'B22 · доля сделок, по которым было оспаривание в суде' },
+    { id:'dispByErr',    label:'Доля оспариваний по ошибке',        fmt:'pct', step:0.001, max:1, hint:'B23 · из всех оспариваний — какая часть по ошибке' },
+    { id:'histSuccess',  label:'Историческая успешность оспариваний',fmt:'pct',step:0.001, max:1, hint:'B24 · доля решений не в пользу банка' },
+    { id:'otherSuccess', label:'Успешность по иным причинам',       fmt:'pct', step:0.001, max:1, hint:'B25 · успешность по причинам, не связанным с ошибкой' },
+    { id:'avgClaim',     label:'Средний размер иска, ₽',            fmt:'rub', step:50000, max:50_000_000, hint:'B26 · сумма требований = иски × это значение' },
+  ];
+  root.innerHTML = fields.map(f => `
+    <div class="flex items-center justify-between gap-3">
+      <label class="text-[12.5px] text-[color:var(--text-2)] leading-tight flex-1">
+        ${f.label}
+        <span class="block text-[10.5px] text-[color:var(--text-4)] mt-0.5">${f.hint}</span>
+      </label>
+      <div class="w-[120px] legal-input-wrap">
+        <input class="num-input text-right" data-legal="${f.id}" data-fmt="${f.fmt}" data-step="${f.step}" data-max="${f.max}"
+               value="${formatLegalValue(state.legal[f.id], f.fmt)}">
+      </div>
+    </div>
+  `).join('');
+  root.querySelectorAll('input[data-legal]').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const k = e.target.dataset.legal;
+      const fmt = e.target.dataset.fmt;
+      const max = parseFloat(e.target.dataset.max);
+      let raw = e.target.value.replace(/[^\d,.\-]/g,'').replace(',', '.');
+      let v = parseFloat(raw);
+      if (!isFinite(v)) { e.target.value = formatLegalValue(state.legal[k], fmt); return; }
+      if (fmt === 'pct') v = v/100;
+      if (v<0) v=0; if (v>max) v=max;
+      state.legal[k] = v;
+      e.target.value = formatLegalValue(v, fmt);
+      apply();
+    });
+  });
+  syncAccordionFocus();
+}
+function formatLegalValue(v, fmt){
+  if (fmt === 'pct') {
+    const pct = v*100;
+    return (Math.round(pct*100)/100).toString().replace('.', ',') + ' %';
+  }
+  return fmtInt.format(Math.round(v)) + ' ₽';
+}
+
+/* ===== Accordion ===== */
+function setupAccordion(){
+  const acc = document.getElementById('legalAcc');
+  const tog = document.getElementById('legalToggle');
+  tog.setAttribute('role', 'button');
+  tog.setAttribute('tabindex', '0');
+  tog.addEventListener('click', () => {
+    const open = acc.getAttribute('aria-expanded') === 'true';
+    acc.setAttribute('aria-expanded', !open);
+    syncAccordionFocus();
+  });
+  tog.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    tog.click();
+  });
+  syncAccordionFocus();
+}
+function syncAccordionFocus(){
+  const acc = document.getElementById('legalAcc');
+  const body = acc?.querySelector('.accordion-body');
+  if (!acc || !body) return;
+  const open = acc.getAttribute('aria-expanded') === 'true';
+  body.setAttribute('aria-hidden', open ? 'false' : 'true');
+  body.querySelectorAll('input, button, select, textarea, a[href]').forEach(el => {
+    if (open) el.removeAttribute('tabindex');
+    else el.setAttribute('tabindex', '-1');
+  });
+}
+
+/* ===== Reset ===== */
+function setupReset(){
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    Object.assign(state.toggles, DEFAULT_STATE.toggles);
+    Object.assign(state.pError,  DEFAULT_STATE.pError);
+    Object.assign(state.pRisk,   DEFAULT_STATE.pRisk);
+    Object.assign(state.legal,   DEFAULT_STATE.legal);
+    buildChips(); buildSliders(); buildLegalParams();
+    apply();
+  });
+}
+
+/* ===== Mobile tabs ===== */
+const mobileMq = window.matchMedia('(max-width: 767px)');
+let activeMobilePanel = 'summary';
+
+function setupMobileTabs(){
+  const tabs = [...document.querySelectorAll('[data-mobile-tab]')];
+  if (!tabs.length) return;
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => setMobilePanel(tab.dataset.mobileTab, true));
+  });
+  const onModeChange = () => setMobilePanel(activeMobilePanel, false);
+  if (mobileMq.addEventListener) mobileMq.addEventListener('change', onModeChange);
+  else mobileMq.addListener(onModeChange);
+  setMobilePanel(activeMobilePanel, false);
+}
+function setMobilePanel(panel, scrollToTop=false){
+  activeMobilePanel = panel || 'summary';
+  const isMobile = mobileMq.matches;
+  document.querySelectorAll('[data-mobile-tab]').forEach(tab => {
+    const active = tab.dataset.mobileTab === activeMobilePanel;
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('[data-mobile-panel]').forEach(el => {
+    const active = !isMobile || el.dataset.mobilePanel === activeMobilePanel;
+    el.classList.toggle('mobile-panel-active', active);
+    el.hidden = !active;
+  });
+  const resultsColumn = document.getElementById('resultsColumn');
+  if (resultsColumn) resultsColumn.classList.toggle('mobile-content-empty', isMobile && activeMobilePanel === 'settings');
+  if (isMobile && activeMobilePanel === 'charts') resizeCharts();
+  if (isMobile && scrollToTop) {
+    const tabs = document.getElementById('mobileTabs');
+    const top = Math.max(0, tabs.getBoundingClientRect().top + window.scrollY - 8);
+    window.scrollTo({ top, behavior:'smooth' });
+  }
+}
+function updateMobileSummary(r){
+  const set = (key, value) => {
+    const el = document.querySelector(`[data-mobile-live="${key}"]`);
+    if (el) el.textContent = value;
+  };
+  set('errShare', fmtPct1.format(r.errShare));
+  set('baseClaim', fmtMoney(r.scenarios[0].claimsSum));
+  set('growth', '×' + fmtDec1.format(r.growth));
+}
+function isMobileViewport(){
+  return mobileMq.matches;
+}
+function applyChartResponsiveOptions(){
+  if (!charts.doughnut) return;
+  const isMobile = isMobileViewport();
+  charts.doughnut.options.plugins.legend.position = isMobile ? 'bottom' : 'right';
+  charts.doughnut.options.plugins.legend.labels.padding = isMobile ? 10 : 12;
+  charts.doughnut.options.plugins.legend.labels.boxWidth = isMobile ? 7 : 8;
+  charts.doughnut.options.cutout = isMobile ? '64%' : '68%';
+  if (charts.bar){
+    charts.bar.options.scales.x.ticks.maxRotation = 0;
+    charts.bar.options.scales.x.ticks.minRotation = 0;
+  }
+  resizeCharts();
+}
+function resizeCharts(){
+  requestAnimationFrame(() => {
+    if (charts.bar) charts.bar.resize();
+    if (charts.doughnut) charts.doughnut.resize();
+  });
+}
+
+/* =============================================================== */
+/* ======================       RENDER       ===================== */
+/* =============================================================== */
+
+let lastResult = null;
+let charts = { bar:null, doughnut:null };
+
+function render(r){
+  // === Chips counter ===
+  const active = Object.values(state.toggles).filter(Boolean).length;
+  document.getElementById('activeExpsCount').textContent = active;
+
+  // === KPI ===
+  setKpi('k-deals',     r.dealsInPool, v => fmtInt.format(Math.round(v)),                   subShare(r.dealsInPool, 6112, 'от 6112 в выборке'));
+  setKpi('k-exps',      r.expsInPool,  v => fmtInt.format(Math.round(v)),                   subShare(r.expsInPool, 22064, 'от 22 064 в выборке'));
+  setKpi('k-errDeals',  r.errDeals,    v => fmtInt.format(Math.round(v)),                   `≈ ${fmtPct1.format(r.errShare)} от пула`);
+  setKpi('k-errShare',  r.errShare*100,v => fmtPct1.format(v/100),                          `1 из ${r.errShare>0?Math.round(1/r.errShare):'—'} сделок`);
+  setKpi('k-errExps',   r.errExps,     v => fmtInt.format(Math.round(v)),                   `на ${fmtInt.format(Math.round(r.expsInPool))} проверок`);
+  setKpi('k-growth',    r.growth,      v => '×' + fmtDec1.format(v),                        `vs ${fmtPct2.format(state.legal.humanErr)} ошибка человека`);
+
+  // warn-tint on growth card
+  const growthCard = document.getElementById('k-growth');
+  if (r.growth > 5){
+    growthCard.style.borderColor = 'rgba(255,122,0,.45)';
+    growthCard.style.boxShadow = '0 0 28px -10px rgba(255,122,0,.35)';
+  } else {
+    growthCard.style.borderColor = '';
+    growthCard.style.boxShadow = '';
+  }
+
+  // === Scenarios ===
+  r.scenarios.forEach(sc => {
+    const tag = sc.tag;
+    tweenEl(`[data-scen-money="${tag}"]`,    sc.claimsSum,   fmtMoney);
+    tweenEl(`[data-scen-disp="${tag}"]`,     sc.disputes,    v => fmtInt.format(Math.round(v)));
+    tweenEl(`[data-scen-won="${tag}"]`,      sc.wonClaims,   v => fmtInt.format(Math.round(v)));
+    tweenEl(`[data-scen-success="${tag}"]`,  sc.weighted*100,v => fmtPct1.format(v/100));
+    tweenEl(`[data-scen-coeff="${tag}"]`,    sc.coeff*100,   v => fmtPct2.format(v/100));
+  });
+  updateMobileSummary(r);
+
+  // === Charts ===
+  renderBar(r);
+  renderDoughnut(r);
+
+  // flash all changed kpi cards
+  if (lastResult){
+    flashIfChanged('k-deals',     r.dealsInPool, lastResult.dealsInPool);
+    flashIfChanged('k-exps',      r.expsInPool,  lastResult.expsInPool);
+    flashIfChanged('k-errDeals',  r.errDeals,    lastResult.errDeals);
+    flashIfChanged('k-errShare',  r.errShare,    lastResult.errShare);
+    flashIfChanged('k-errExps',   r.errExps,     lastResult.errExps);
+    flashIfChanged('k-growth',    r.growth,      lastResult.growth);
+    r.scenarios.forEach((sc,i)=>{
+      const cardEl = document.getElementById('scen-'+sc.tag);
+      const prev = lastResult.scenarios[i].claimsSum;
+      if (Math.abs(prev - sc.claimsSum) > 1) flash(cardEl);
+    });
+  }
+  lastResult = r;
+}
+function flashIfChanged(id, a, b){
+  if (Math.abs(a-b) < 1e-9*Math.max(1, Math.abs(a))) return;
+  flash(document.getElementById(id));
+}
+function setKpi(id, value, fmt, sub){
+  const el = document.querySelector(`[data-kpi="${id}"]`);
+  tweenNumber(el, value, fmt);
+  const subEl = document.querySelector(`[data-kpi-sub="${id}"]`);
+  if (subEl) subEl.textContent = sub;
+}
+function subShare(part, whole, suffix){
+  if (whole<=0) return '';
+  const p = part/whole;
+  return `${fmtPct1.format(p)} ${suffix}`;
+}
+function tweenEl(sel, val, fmt){
+  const el = document.querySelector(sel);
+  if (!el) return;
+  tweenNumber(el, val, fmt);
+}
+
+/* =============================================================== */
+/* =======================       CHARTS       ==================== */
+/* =============================================================== */
+
+Chart.defaults.color = '#9AA3B2';
+Chart.defaults.font.family = "'SB Sans Display','Inter',-apple-system,system-ui,sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.borderColor = 'rgba(255,255,255,.06)';
+
+function initCharts(){
+  const bctx = document.getElementById('chartBar').getContext('2d');
+  charts.bar = new Chart(bctx, {
+    type: 'bar',
+    data: { labels: ['Базовый','Умеренный','Стресс'],
+      datasets:[{
+        data:[0,0,0],
+        backgroundColor: (ctx) => {
+          const {chart} = ctx;
+          const {ctx:c, chartArea} = chart;
+          if (!chartArea) return '#43E695';
+          const colors = ['#43E695','#FFCB05','#FF7A00'];
+          const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          const base = colors[ctx.dataIndex] || '#43E695';
+          g.addColorStop(0, base);
+          g.addColorStop(1, base+'33');
+          return g;
+        },
+        borderRadius:10, barPercentage:.6, categoryPercentage:.7,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{duration:380, easing:'easeOutCubic'},
+      plugins:{ legend:{display:false}, tooltip:{
+          backgroundColor:'#0E1218', borderColor:'rgba(67,230,149,.3)', borderWidth:1,
+          titleColor:'#F4F6FA', bodyColor:'#F4F6FA', padding:10, displayColors:false,
+          callbacks:{ label: c => fmtMoney(c.parsed.y) }
+        }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{weight:'600'}} },
+        y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{ callback: v => fmtMoney(v) } }
+      }
+    }
+  });
+
+  const dctx = document.getElementById('chartDoughnut').getContext('2d');
+  charts.doughnut = new Chart(dctx, {
+    type:'doughnut',
+    data:{ labels: EXPS.map(e=>e.short), datasets:[{
+      data:[0,0,0,0,0], backgroundColor: EXPS.map(e=>e.hex),
+      borderColor:'#0F121A', borderWidth:3, hoverOffset:6,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'68%', animation:{duration:380},
+      plugins:{
+        legend:{ position:'right', labels:{ usePointStyle:true, pointStyle:'circle', boxWidth:8, padding:12 } },
+        tooltip:{
+          backgroundColor:'#0E1218', borderColor:'rgba(67,230,149,.3)', borderWidth:1,
+          callbacks:{ label: c => `${c.label}: ${fmtInt.format(Math.round(c.parsed))} сделок` }
+        }
+      }
+    }
+  });
+
+  applyChartResponsiveOptions();
+  if (mobileMq.addEventListener) mobileMq.addEventListener('change', applyChartResponsiveOptions);
+  else mobileMq.addListener(applyChartResponsiveOptions);
+}
+
+function renderBar(r){
+  charts.bar.data.datasets[0].data = r.scenarios.map(s=>s.claimsSum);
+  charts.bar.update('none');
+}
+function renderDoughnut(r){
+  charts.doughnut.data.datasets[0].data = EXPS.map(e => r.contrib[e.id]);
+  charts.doughnut.update('none');
+}
+/* =============================================================== */
+/* ========================       MAIN       ==================== */
+/* =============================================================== */
+
+function apply(){
+  const r = recompute(state);
+  render(r);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  buildChips();
+  buildSliders();
+  buildKpiCards();
+  setupFixedTooltips();
+  buildScenCards();
+  buildLegalParams();
+  setupAccordion();
+  setupReset();
+  initCharts();
+  apply();
+  setupMobileTabs();
+});
+
+</script>
+</body>
+</html>
