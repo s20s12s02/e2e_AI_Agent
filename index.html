@@ -173,6 +173,24 @@ input[type=range].sb:disabled::-webkit-slider-runnable-track{
 .kpi-card{ min-height:130px; }
 .scen-card{ min-height:240px; }
 
+/* ====== Delta indicators ====== */
+.delta{
+  display:inline-flex; align-items:center; gap:3px;
+  padding:2px 7px; border-radius:999px;
+  font-size:11px; font-weight:700; line-height:1;
+  letter-spacing:.01em; white-space:nowrap;
+  vertical-align:middle;
+  font-variant-numeric:tabular-nums;
+  transition: background-color .25s ease, color .25s ease, opacity .25s ease;
+}
+.delta[hidden]{ display:none; }
+.delta-arrow{ font-size:10px; line-height:1; }
+.delta--up-bad   { color:var(--warn);     background:var(--warn-soft); }
+.delta--down-good{ color:var(--accent-3); background:rgba(67,230,149,.16); }
+.delta--down-bad { color:var(--warn);     background:var(--warn-soft); }
+[data-delta-scen-disp].delta,
+[data-delta-scen-won].delta{ font-size:10px; padding:1px 6px; }
+
 /* ====== Accordion ====== */
 .accordion-toggle{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; border-radius:12px; transition: background .2s ease; }
 .accordion-toggle:hover{ background:rgba(255,255,255,.03); }
@@ -382,17 +400,17 @@ input[type=range].sb:disabled::-webkit-slider-runnable-track{
     <div>
       <div class="flex items-center gap-2 text-[12px] font-medium text-[color:var(--text-2)] tracking-wider uppercase mb-2">
         <span class="pulse-dot"></span>
-        Калькулятор экономики · Live
+        Калькулятор · Live
       </div>
       <h1 class="text-[34px] lg:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em]">
         E2E AI-Агент <span class="gradient-text">для правовой экспертизы</span>
       </h1>
       <p class="text-[14px] text-[color:var(--text-2)] mt-2 max-w-[640px]">
-        6&nbsp;112 сделок · 22064 экспертизы · 5 видов экспертизы. Двигайте слайдеры — модель пересчитывается мгновенно.
+        6&nbsp;112 сделок · 22064 экспертизы · 5 видов экспертизы. Двигайте слайдеры — дашборд пересчитывается мгновенно.
       </p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      <span class="badge badge-offline">● ОФЛАЙН · file://</span>
+      <span class="badge badge-offline">●</span>
       <button id="resetBtn" class="px-3.5 py-2 text-[12.5px] font-semibold rounded-xl border border-white/8 hover:border-white/20 text-[color:var(--text-2)] hover:text-white transition-all">
         ↻ Сбросить параметры
       </button>
@@ -668,6 +686,40 @@ function recompute(s){
            contrib, scenarios, transferBase, successBase, dispByErrShare, dispOtherShare };
 }
 
+/* ===== Baseline snapshot (для дельта-индикаторов) ===== */
+const BASELINE = recompute(structuredClone(DEFAULT_STATE));
+
+/* ===== Дельта-индикаторы: конфиг ===== */
+// polarity:
+//   'growBad'    — рост = красный (хуже), снижение = зелёный (лучше)
+//   'shrinkOnly' — пул не может расти выше дефолта, любое отклонение = красный ↓
+const DELTA_TARGETS = [
+  { sel: '[data-delta="k-deals"]',    get: r => r.dealsInPool, polarity: 'shrinkOnly' },
+  { sel: '[data-delta="k-exps"]',     get: r => r.expsInPool,  polarity: 'shrinkOnly' },
+  { sel: '[data-delta="k-errDeals"]', get: r => r.errDeals,    polarity: 'growBad' },
+  { sel: '[data-delta="k-errShare"]', get: r => r.errShare,    polarity: 'growBad' },
+  { sel: '[data-delta="k-errExps"]',  get: r => r.errExps,     polarity: 'growBad' },
+  { sel: '[data-delta="k-growth"]',   get: r => r.growth,      polarity: 'growBad' },
+  ...['base','mid','stress'].flatMap((tag, i) => ([
+    { sel: `[data-delta-scen-money="${tag}"]`, get: r => r.scenarios[i].claimsSum, polarity: 'growBad' },
+    { sel: `[data-delta-scen-disp="${tag}"]`,  get: r => r.scenarios[i].disputes,  polarity: 'growBad' },
+    { sel: `[data-delta-scen-won="${tag}"]`,   get: r => r.scenarios[i].wonClaims, polarity: 'growBad' },
+  ])),
+];
+
+function computeDelta(current, baseline, polarity){
+  if (!isFinite(baseline) || baseline === 0) return { hidden: true };
+  const relPct = (current - baseline) / baseline * 100;
+  if (Math.abs(relPct) < 0.05) return { hidden: true };
+  const direction = relPct > 0 ? 'up' : 'down';
+  const cls = polarity === 'shrinkOnly'
+    ? 'delta--down-bad'
+    : (direction === 'up' ? 'delta--up-bad' : 'delta--down-good');
+  const sign = relPct > 0 ? '+' : '−';
+  const text = `${sign}${Math.abs(relPct).toFixed(1)}%`;
+  return { hidden: false, direction, cls, text };
+}
+
 /* ===== Formatters ===== */
 const NB = ' ';
 const fmtInt   = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
@@ -807,7 +859,10 @@ function buildKpiCards(){
         </button>
       </div>
       <div class="mt-4">
-        <div class="kpi-num text-[34px] font-extrabold ${c.accent?'gradient-text':''}" data-kpi="${c.id}">—</div>
+        <div class="flex items-baseline gap-2 flex-wrap">
+          <div class="kpi-num text-[34px] font-extrabold ${c.accent?'gradient-text':''}" data-kpi="${c.id}">—</div>
+          <span class="delta" data-delta="${c.id}" hidden></span>
+        </div>
         <div class="text-[12px] text-[color:var(--text-3)] mt-1" data-kpi-sub="${c.id}">&nbsp;</div>
       </div>
     </div>
@@ -914,17 +969,26 @@ function buildScenCards(){
 
         <div class="mt-5">
           <div class="text-[11px] text-[color:var(--text-3)] uppercase tracking-[.08em]">Сумма требований</div>
-          <div class="kpi-num text-[28px] font-extrabold mt-1" data-scen-money="${t.tag}" style="color:${t.accent}">—</div>
+          <div class="flex items-baseline gap-2 flex-wrap mt-1">
+            <div class="kpi-num text-[28px] font-extrabold" data-scen-money="${t.tag}" style="color:${t.accent}">—</div>
+            <span class="delta" data-delta-scen-money="${t.tag}" hidden></span>
+          </div>
         </div>
 
         <div class="mt-4 grid grid-cols-2 gap-3 text-[12px]">
           <div>
             <div class="text-[color:var(--text-3)]">Оспариваемых сделок</div>
-            <div class="font-bold text-[15px] mt-0.5" data-scen-disp="${t.tag}">—</div>
+            <div class="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+              <div class="font-bold text-[15px]" data-scen-disp="${t.tag}">—</div>
+              <span class="delta" data-delta-scen-disp="${t.tag}" hidden></span>
+            </div>
           </div>
           <div>
             <div class="text-[color:var(--text-3)]">Удовл. иски</div>
-            <div class="font-bold text-[15px] mt-0.5" data-scen-won="${t.tag}">—</div>
+            <div class="flex items-baseline gap-1.5 flex-wrap mt-0.5">
+              <div class="font-bold text-[15px]" data-scen-won="${t.tag}">—</div>
+              <span class="delta" data-delta-scen-won="${t.tag}" hidden></span>
+            </div>
           </div>
           <div>
             <div class="text-[color:var(--text-3)]">Решения не в пользу банка</div>
@@ -1138,6 +1202,9 @@ function render(r){
   });
   updateMobileSummary(r);
 
+  // === Delta indicators (vs BASELINE = default state) ===
+  renderDeltas(r);
+
   // === Charts ===
   renderBar(r);
   renderDoughnut(r);
@@ -1161,6 +1228,22 @@ function render(r){
 function flashIfChanged(id, a, b){
   if (Math.abs(a-b) < 1e-9*Math.max(1, Math.abs(a))) return;
   flash(document.getElementById(id));
+}
+function renderDeltas(r){
+  for (const t of DELTA_TARGETS){
+    const el = document.querySelector(t.sel);
+    if (!el) continue;
+    const d = computeDelta(t.get(r), t.get(BASELINE), t.polarity);
+    if (d.hidden){
+      el.hidden = true;
+      el.textContent = '';
+      el.className = 'delta';
+      continue;
+    }
+    el.hidden = false;
+    el.className = `delta ${d.cls}`;
+    el.innerHTML = `<span class="delta-arrow">${d.direction === 'up' ? '↑' : '↓'}</span>${d.text}`;
+  }
 }
 function setKpi(id, value, fmt, sub){
   const el = document.querySelector(`[data-kpi="${id}"]`);
